@@ -11,22 +11,23 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.newrelic.metrics.publish.binding.Context;
 import com.newrelic.metrics.publish.binding.Request;
 import com.newrelic.metrics.publish.configuration.Config;
 import com.newrelic.metrics.publish.configuration.ConfigurationException;
 import com.newrelic.metrics.publish.configuration.SDKConfiguration;
-import com.newrelic.metrics.publish.util.Logger;
 
 /**
- * The main entry point for executing the SDK.
- * Add an {@link AgentFactory} to create an {@link Agent}
- * or register an {@link Agent} directly. The {@code Runner} will poll {@link Agent}s
- * in a loop that never returns.
+ * The main entry point for executing the SDK. Add an {@link AgentFactory} to create an {@link Agent} or register an {@link Agent} directly. The
+ * {@code Runner} will poll {@link Agent}s in a loop that never returns.
  */
-public class Runner {
+public class Runner
+{
 
-    private static Logger logger;
+    private static Logger logger = LoggerFactory.getLogger(Runner.class);
 
     private List<Agent> componentAgents;
     private final SDKConfiguration config;
@@ -36,50 +37,59 @@ public class Runner {
 
     /**
      * Constructs a {@code Runner}
-     * @throws ConfigurationException if there is a configuration issue
+     *
+     * @throws ConfigurationException
+     *             if there is a configuration issue
      */
-    public Runner() throws ConfigurationException {
+    public Runner() throws ConfigurationException
+    {
         super();
         componentAgents = new LinkedList<Agent>();
 
-        try {
+        try
+        {
             Config.init();
-            Logger.init(Config.getValue("log_level", "info"),
-                        Config.getValue("log_file_path", "logs"),
-                        Config.getValue("log_file_name", "newrelic_plugin.log"),
-                        getLogLimitInKilobytes());
-            logger = Logger.getLogger(Runner.class);
             config = new SDKConfiguration();
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             throw new ConfigurationException(e.getMessage());
         }
     }
 
     /**
-     * Add an {@link AgentFactory} that can create {@link Agent}s
-     * through a JSON configuration file
-     * @param factory the {@link AgentFactory} to be added
+     * Add an {@link AgentFactory} that can create {@link Agent}s through a JSON configuration file
+     *
+     * @param factory
+     *            the {@link AgentFactory} to be added
      */
-    public void add(AgentFactory factory) {
+    public void add(AgentFactory factory)
+    {
         factories.add(factory);
     }
 
     /**
      * Add an {@link Agent}
-     * @param agent the {@link Agent} to be added
+     *
+     * @param agent
+     *            the {@link Agent} to be added
      */
-    public void add(Agent agent) {
+    public void add(Agent agent)
+    {
         componentAgents.add(agent);
     }
 
     /**
      * Register an {@link Agent}
-     * @param agent the {@link Agent} to be registered
-     * <p>
-     * This method is now deprecated and will be removed in a future release.  Use {@link Agent#add(Agent)} instead.
+     *
+     * @param agent
+     *            the {@link Agent} to be registered
+     *            <p>
+     *            This method is now deprecated and will be removed in a future release. Use {@link Agent#add(Agent)} instead.
      */
     @Deprecated
-    public void register(Agent agent) {
+    public void register(Agent agent)
+    {
         componentAgents.add(agent);
     }
 
@@ -87,67 +97,88 @@ public class Runner {
      * Get the {@link SDKConfiguration} for the {@code Runner}
      * <p>
      * This class is now deprecated and will be removed in a future release. See {@link Config}.
+     *
      * @return SDKConfiguration the current {@link SDKConfiguration}
      */
     @Deprecated
-    public SDKConfiguration getConfiguration() {
+    public SDKConfiguration getConfiguration()
+    {
         return config;
     }
 
     /**
-     * Setup the {@code Runner} and run in a loop that will never return.
-     * Add an {@link AgentFactory} or register {@link Agent}s before calling.
-     * @throws ConfigurationException if the {@link Runner} was not configured correctly
+     * Setup the {@code Runner} and run in a loop that will never return. Add an {@link AgentFactory} or register {@link Agent}s before calling.
+     *
+     * @throws ConfigurationException
+     *             if the {@link Runner} was not configured correctly
      */
-    public void setupAndRun() throws ConfigurationException {
+    public void setupAndRun() throws ConfigurationException
+    {
         setupAgents();
         // TODO: when removing SDKConfiguration, move config validation here
         pollInterval = config.getPollInterval();
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        ScheduledFuture<?> future = executor.scheduleAtFixedRate(new PollAgentsRunnable(), 0, pollInterval, TimeUnit.SECONDS);  //schedule pollAgentsRunnable as the runnable command
+        ScheduledFuture<?> future = executor.scheduleAtFixedRate(new PollAgentsRunnable(), 0, pollInterval, TimeUnit.SECONDS); // schedule
+                                                                                                                               // pollAgentsRunnable
+                                                                                                                               // as the runnable
+                                                                                                                               // command
 
         System.out.println("INFO: New Relic monitor started");
 
-        try {
+        try
+        {
             // getting the future's response will block forever unless an exception is thrown
             future.get();
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e)
+        {
             System.err.println("SEVERE: An error has occurred");
             e.printStackTrace();
-        } catch (CancellationException e) {
+        }
+        catch (CancellationException e)
+        {
             System.err.println("SEVERE: An error has occurred");
             e.printStackTrace();
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e)
+        {
             // ExecutionException will wrap any java.lang.Error from the polling thread that we should not catch there (e.g. OutOfMemoryError)
             System.err.println("SEVERE: An error has occurred");
             e.printStackTrace();
-        } finally {
+        }
+        finally
+        {
             // clean up
             future.cancel(true);
             executor.shutdown();
         }
     }
 
-    private void createAgents() throws ConfigurationException {
-        for (Iterator<AgentFactory> iterator = factories.iterator(); iterator.hasNext();) {
-            AgentFactory factory = (AgentFactory) iterator.next();
+    private void createAgents() throws ConfigurationException
+    {
+        for (Iterator<AgentFactory> iterator = factories.iterator(); iterator.hasNext();)
+        {
+            AgentFactory factory = iterator.next();
             factory.createConfiguredAgents(this);
         }
     }
 
-    private void setupAgents() throws ConfigurationException {
+    private void setupAgents() throws ConfigurationException
+    {
         logger.debug("Setting up agents to be run");
 
         createAgents();
-        if(config.internalGetServiceURI() != null) {
+        if (config.internalGetServiceURI() != null)
+        {
             logger.info("Metric service URI: ", config.internalGetServiceURI());
         }
 
         context = new Context();
 
         Iterator<Agent> iterator = componentAgents.iterator();
-        while (iterator.hasNext()) {
+        while (iterator.hasNext())
+        {
             Agent agent = iterator.next();
 
             setupAgentContext(agent);
@@ -155,19 +186,22 @@ public class Runner {
             agent.prepareToRun();
             agent.setupMetrics();
 
-            //TODO this is a really awkward place to set the license key on the request
+            // TODO this is a really awkward place to set the license key on the request
             context.licenseKey = config.getLicenseKey();
-            if(config.internalGetServiceURI() != null) {
+            if (config.internalGetServiceURI() != null)
+            {
                 context.internalSetServiceURI(config.internalGetServiceURI());
             }
             context.internalSetSSLHostVerification(config.isSSLHostVerificationEnabled());
         }
     }
 
-    private void setupAgentContext(Agent agent) {
-        // Since this data comes from the configured agents, it needs to be initialized here.  But only set it once since
+    private void setupAgentContext(Agent agent)
+    {
+        // Since this data comes from the configured agents, it needs to be initialized here. But only set it once since
         // all agents should share the same version.
-        if (context.agentData.version == null) {
+        if (context.agentData.version == null)
+        {
             context.agentData.version = agent.getVersion();
         }
 
@@ -175,34 +209,42 @@ public class Runner {
         agent.getCollector().createComponent(agent.getGUID(), agent.getAgentName());
     }
 
-    private Integer getLogLimitInKilobytes() {
+    private Integer getLogLimitInKilobytes()
+    {
         Integer logLimitInKiloBytes = 25600; // 25 MB
-        if (Config.getValue("log_limit_in_kbytes") instanceof String) {
-            logLimitInKiloBytes = Integer.valueOf(Config.<String>getValue("log_limit_in_kbytes"));
+        if (Config.getValue("log_limit_in_kbytes") instanceof String)
+        {
+            logLimitInKiloBytes = Integer.valueOf(Config.<String> getValue("log_limit_in_kbytes"));
         }
-        else if (Config.getValue("log_limit_in_kbytes") instanceof Number) {
-            logLimitInKiloBytes = Config.<Long>getValue("log_limit_in_kbytes").intValue();
+        else if (Config.getValue("log_limit_in_kbytes") instanceof Number)
+        {
+            logLimitInKiloBytes = Config.<Long> getValue("log_limit_in_kbytes").intValue();
         }
         return logLimitInKiloBytes;
     }
 
     /**
      * Inner runnable class for polling agents from ScheduledExecutor
+     *
      * @author jstenhouse
      */
-    private class PollAgentsRunnable implements Runnable {
+    private class PollAgentsRunnable implements Runnable
+    {
 
         /**
          * Collect and report metric data.
          */
         @Override
-        public void run() {
-            try {
+        public void run()
+        {
+            try
+            {
                 logger.debug("Harvest and report data");
 
                 Request request = context.createRequest();
 
-                for (Iterator<Agent> iterator = componentAgents.iterator(); iterator.hasNext();) {
+                for (Iterator<Agent> iterator = componentAgents.iterator(); iterator.hasNext();)
+                {
                     Agent agent = iterator.next();
                     agent.getCollector().setRequest(request);
                     logger.debug("Beginning poll cycle for agent: '", agent.getAgentName(), "'");
@@ -211,7 +253,9 @@ public class Runner {
                 }
 
                 request.deliver();
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 // log exception and continue polling -- could be a transient issue
                 // java.lang.Error(s) are thrown and handled by the main thread
                 System.err.println("SEVERE: An error has occurred");
