@@ -29,11 +29,33 @@ public class Runner
 
     private static Logger logger = LoggerFactory.getLogger(Runner.class);
 
-    private List<Agent> componentAgents;
+    private List<Agent> componentAgents = new LinkedList<>();
     private final SDKConfiguration config;
     private int pollInterval = 60;
-    private HashSet<AgentFactory> factories = new HashSet<AgentFactory>();
+    private HashSet<AgentFactory> factories = new HashSet<>();
     private Context context;
+
+    /**
+     * Constructs a {@code Runner}
+     *
+     * @param newRelicConfigFile
+     * @param pluginConfigFile
+     *
+     * @throws ConfigurationException
+     *             if there is a configuration issue
+     */
+    public Runner(String newRelicConfigFile, String pluginConfigFile) throws ConfigurationException
+    {
+        try
+        {
+            Config.init(newRelicConfigFile, pluginConfigFile);
+            config = new SDKConfiguration();
+        }
+        catch (Exception e)
+        {
+            throw new ConfigurationException(e.getMessage());
+        }
+    }
 
     /**
      * Constructs a {@code Runner}
@@ -43,9 +65,6 @@ public class Runner
      */
     public Runner() throws ConfigurationException
     {
-        super();
-        componentAgents = new LinkedList<Agent>();
-
         try
         {
             Config.init();
