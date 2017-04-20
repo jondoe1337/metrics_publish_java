@@ -41,24 +41,6 @@ public final class Config
      *
      * @throws ConfigurationException
      */
-    public static void init(String newRelicConfigFile, String pluginConfigFile) throws ConfigurationException
-    {
-        try
-        {
-            load(newRelicConfigFile);
-            load(pluginConfigFile, false);
-        }
-        catch (IOException e)
-        {
-            throw new ConfigurationException(e.getMessage());
-        }
-    }
-
-    /**
-     * This class must be initialized before accessing config values.
-     *
-     * @throws ConfigurationException
-     */
     public static void init() throws ConfigurationException
     {
         try
@@ -191,10 +173,7 @@ public final class Config
         }
     }
 
-    /*
-     * For testing
-     */
-    static void init(Map<String, Object> initialConfig)
+    public static void init(Map<String, Object> initialConfig)
     {
         config = initialConfig;
     }

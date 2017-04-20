@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -38,17 +39,15 @@ public class Runner
     /**
      * Constructs a {@code Runner}
      *
-     * @param newRelicConfigFile
-     * @param pluginConfigFile
-     *
+     * @param initialConfig
      * @throws ConfigurationException
      *             if there is a configuration issue
      */
-    public Runner(String newRelicConfigFile, String pluginConfigFile) throws ConfigurationException
+    public Runner(Map<String, Object> initialConfig) throws ConfigurationException
     {
         try
         {
-            Config.init(newRelicConfigFile, pluginConfigFile);
+            Config.init(initialConfig);
             config = new SDKConfiguration();
         }
         catch (Exception e)
